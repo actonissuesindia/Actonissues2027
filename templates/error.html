@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>{{TITLE}} — Act On Issues</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; padding: 32px 16px;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif;
+    }
+    .c { max-width: 520px; width: 100%; }
+    .code {
+      font-size: 6rem; font-weight: 800; line-height: 1; letter-spacing: -.03em;
+      margin: 0 0 8px; font-variant-numeric: tabular-nums;
+      background: linear-gradient(135deg, #7dd3fc, #38bdf8 45%, #818cf8);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .emoji { font-size: 2rem; display: block; margin-bottom: 4px; }
+    h1 { font-size: 2rem; margin: 0 0 12px; }
+    p { line-height: 1.6; color: #cbd5e1; }
+    a { color: #7dd3fc; }
+    .ref { font-size: .85rem; color: #94a3b8; }
+    .ref code { background: #1e293b; color: #e2e8f0; padding: 2px 8px; border-radius: 6px; }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 24px; }
+    .btn {
+      display: inline-block; border-radius: 999px; padding: 10px 24px;
+      font-weight: 700; font-size: 1rem; text-decoration: none; cursor: pointer;
+      border: 2px solid #38bdf8; font-family: inherit;
+    }
+    .btn.primary { background: #38bdf8; color: #0f172a; }
+    .btn.ghost { background: transparent; color: #7dd3fc; }
+    .btn:focus-visible { outline: 3px solid #e2e8f0; outline-offset: 2px; }
+{{GAME_CSS}}
+    @media (max-width: 400px) { .code { font-size: 4.5rem; } h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+  <main class="c">
+    <span class="emoji" aria-hidden="true">{{EMOJI}}</span>
+    <p class="code" aria-label="Error {{CODE}}">{{CODE}}</p>
+    <h1>{{TITLE}}</h1>
+    <p>{{MESSAGE}}</p>
+    {{REFERENCE}}
+    <div class="actions">{{ACTIONS}}</div>
+
+{{GAME}}
+  </main>
+</body>
+</html>

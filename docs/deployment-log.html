@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Act On Issues — Deployment Log</title>
+<style>
+  :root {
+    --bg: #090c11;
+    --bg-deep: #050709;
+    --panel: #12161f;
+    --panel-2: #171c27;
+    --ink: #eef2f8;
+    --ink-dim: #aab3c2;
+    --ink-faint: #5c6577;
+    --line: rgba(255,255,255,.08);
+    --line-bright: rgba(255,255,255,.16);
+    --amber: #ffb454;
+    --amber-dim: rgba(255,180,84,.14);
+    --cyan: #4fd1e8;
+    --cyan-dim: rgba(79,209,232,.14);
+    --ok: #6ee7a0;
+    --ok-dim: rgba(110,231,160,.12);
+    --warn: #ffb454;
+    --warn-dim: rgba(255,180,84,.12);
+    --crit: #ff8080;
+    --crit-dim: rgba(255,128,128,.12);
+    --info: #4fd1e8;
+    --info-dim: rgba(79,209,232,.12);
+    --disp: "Avenir Next", "Segoe UI Semibold", "Helvetica Neue", Arial, sans-serif;
+    --body: -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, "SF Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 900px 500px at 12% -10%, rgba(255,180,84,.10), transparent 60%),
+      radial-gradient(ellipse 800px 600px at 100% 10%, rgba(79,209,232,.08), transparent 55%);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--amber-dim); color: var(--ink); }
+  a { color: var(--cyan); }
+  .mono { font-family: var(--mono); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* ================= HERO ================= */
+  .hero {
+    position: relative;
+    padding: 88px 24px 56px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .74rem;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .eyebrow .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 0 4px var(--amber-dim), 0 0 14px var(--amber);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+
+  h1.title {
+    font-family: var(--disp);
+    font-weight: 800;
+    font-size: clamp(2.6rem, 6.2vw, 4.6rem);
+    letter-spacing: -.02em;
+    line-height: 1.02;
+    margin: 20px 0 22px;
+    text-wrap: balance;
+    max-width: 14ch;
+  }
+  h1.title em {
+    font-style: normal;
+    background: linear-gradient(100deg, var(--amber) 0%, #ffd9a0 45%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .lede {
+    color: var(--ink-dim);
+    font-size: 1.18rem;
+    max-width: 56ch;
+    margin: 0 0 40px;
+    font-weight: 400;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 48px;
+  }
+  .stat {
+    background: var(--panel);
+    padding: 18px 20px;
+  }
+  .stat .n {
+    font-family: var(--mono);
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--amber);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .l {
+    margin-top: 8px;
+    font-size: .76rem;
+    color: var(--ink-faint);
+    letter-spacing: .02em;
+  }
+
+  /* signal path canvas */
+  .signal-wrap {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--bg-deep) 130%);
+    padding: 28px 20px 20px;
+    overflow: hidden;
+  }
+  .signal-wrap .cap {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 10px;
+  }
+  canvas#route { display: block; width: 100%; height: 220px; }
+
+  /* ================= SHELL / TOC ================= */
+  .shell {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 740px);
+    gap: 48px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 48px 24px 120px;
+    align-items: start;
+  }
+  @media (max-width: 880px) {
+    .shell { grid-template-columns: 1fr; padding: 32px 18px 80px; }
+    .toc { display: none; }
+    .hero { padding: 56px 18px 40px; }
+  }
+
+  .toc {
+    position: sticky;
+    top: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: .85rem;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .toc-label {
+    font-family: var(--mono);
+    font-size: .66rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--ink-faint);
+    padding: 12px 14px 8px;
+    background: var(--panel);
+  }
+  .toc a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    padding: 9px 14px;
+    background: var(--panel);
+    border-left: 2px solid transparent;
+    transition: color .15s, border-color .15s, background .15s;
+    font-family: var(--mono);
+    font-size: .78rem;
+  }
+  .toc a:hover { color: var(--ink); border-color: var(--amber); background: var(--panel-2); }
+
+  /* ================= CONTENT ================= */
+  main { min-width: 0; }
+  section.step {
+    position: relative;
+    padding: 46px 0 30px;
+    border-top: 1px solid var(--line);
+    scroll-margin-top: 24px;
+  }
+  section.step:first-of-type { border-top: none; padding-top: 4px; }
+
+  .ghost-num {
+    position: absolute;
+    top: 24px; right: -6px;
+    font-family: var(--mono);
+    font-size: 5.2rem;
+    font-weight: 700;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--line-bright);
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
+  @media (max-width: 700px) { .ghost-num { display: none; } }
+
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; position: relative; z-index: 1; }
+  .step-num {
+    font-family: var(--mono);
+    color: var(--bg);
+    background: var(--amber);
+    font-weight: 700;
+    font-size: .72rem;
+    padding: 3px 8px;
+    border-radius: 5px;
+    letter-spacing: .04em;
+  }
+  h2 {
+    font-family: var(--disp);
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -.01em;
+    position: relative; z-index: 1;
+  }
+  h3 {
+    font-family: var(--disp);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 30px 0 12px;
+    color: var(--ink);
+  }
+
+  p { margin: 0 0 15px; max-width: 66ch; color: var(--ink-dim); position: relative; z-index: 1; }
+  p strong, li strong { color: var(--ink); font-weight: 700; }
+  ul, ol { margin: 0 0 15px; padding-left: 22px; max-width: 64ch; color: var(--ink-dim); position: relative; z-index: 1; }
+  li { margin-bottom: 6px; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 4px 10px 4px 9px;
+    border-radius: 999px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .badge.ok { background: var(--ok-dim); color: var(--ok); border-color: rgba(110,231,160,.25); }
+  .badge.warn { background: var(--warn-dim); color: var(--warn); border-color: rgba(255,180,84,.25); }
+  .badge.crit { background: var(--crit-dim); color: var(--crit); border-color: rgba(255,128,128,.25); }
+  .badge.info { background: var(--info-dim); color: var(--info); border-color: rgba(79,209,232,.25); }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+
+  .callout {
+    position: relative; z-index: 1;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ink-faint);
+    background: var(--panel);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    margin: 18px 0;
+    max-width: 64ch;
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.crit { border-left-color: var(--crit); }
+  .callout.info { border-left-color: var(--info); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .callout-label {
+    display: block;
+    font-family: var(--mono);
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .callout.warn .callout-label { color: var(--warn); }
+  .callout.crit .callout-label { color: var(--crit); }
+  .callout.info .callout-label { color: var(--info); }
+
+  pre {
+    position: relative; z-index: 1;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    color: #cfe0f0;
+    border-radius: 10px;
+    padding: 34px 18px 16px;
+    overflow-x: auto;
+    font-size: .82rem;
+    line-height: 1.6;
+    margin: 14px 0 20px;
+    max-width: 100%;
+  }
+  pre::before {
+    content: "● ● ●";
+    position: absolute;
+    top: 12px; left: 16px;
+    font-size: .6rem;
+    letter-spacing: 3px;
+    color: var(--ink-faint);
+  }
+  pre code { font-family: var(--mono); }
+  code:not(pre code) {
+    font-family: var(--mono);
+    background: var(--amber-dim);
+    color: var(--amber);
+    padding: .1em .4em;
+    border-radius: 4px;
+    font-size: .86em;
+  }
+  .err-line { color: var(--crit); }
+
+  table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  .table-wrap {
+    position: relative; z-index: 1;
+    overflow-x: auto; margin: 14px 0 22px;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--panel);
+  }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-dim); }
+  thead th {
+    font-family: var(--mono);
+    font-size: .66rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ink-faint);
+    background: var(--panel-2);
+  }
+  td code, td .mono { color: var(--ink); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--panel-2); }
+  tbody tr:hover td:first-child { color: var(--amber); }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 14px 0 22px;
+    position: relative; z-index: 1;
+  }
+  .config-card { background: var(--panel); padding: 16px 18px; }
+  .config-card .k { font-family: var(--mono); font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-faint); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .config-card .k::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .config-card .v { font-family: var(--mono); font-size: .87rem; color: var(--ink); word-break: break-word; }
+  .config-card .v small { display: block; color: var(--ink-faint); font-size: .78rem; margin-top: 5px; font-family: var(--body); }
+
+  footer {
+    margin-top: 44px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-faint);
+    font-size: .85rem;
+    max-width: 68ch;
+  }
+  footer code { font-size: .82em; }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow"><span class="dot"></span>Infrastructure runbook · act-on-issues</span>
+    <h1 class="title">Chasing a <em>connection</em> across three regions</h1>
+    <p class="lede">The full record of getting Act On Issues from a folder on one computer to a live public site — every setting, every dead end, and the five-second timeout that turned out to be the whole mystery.</p>
+
+    <div class="stat-row">
+      <div class="stat"><div class="n">3</div><div class="l">regions actually deployed to</div></div>
+      <div class="stat"><div class="n">2</div><div class="l">regions blocked by quota</div></div>
+      <div class="stat"><div class="n">5s → 20s</div><div class="l">the fix that solved it</div></div>
+      <div class="stat"><div class="n">11</div><div class="l">env vars, re-entered 3×</div></div>
+      <div class="stat"><div class="n">8</div><div class="l">DNS records for the domain</div></div>
+    </div>
+
+    <div class="signal-wrap">
+      <div class="cap">Signal path — where the database actually lives vs. where the app tried to run</div>
+      <canvas id="route"></canvas>
+    </div>
+  </div>
+</section>
+
+<div class="shell">
+  <nav class="toc">
+    <div class="toc-label">Contents</div>
+    <a href="#s1">01 · Code to GitHub</a>
+    <a href="#s2">02 · Database (Atlas)</a>
+    <a href="#s3">03 · Email (Brevo)</a>
+    <a href="#s5">05 · File storage</a>
+    <a href="#s6">06 · Env variables</a>
+    <a href="#s7">07 · First deploy</a>
+    <a href="#s8">08 · The domain saga</a>
+    <a href="#s9">09 · Password lesson</a>
+    <a href="#s10">10 · Email, still broken</a>
+    <a href="#lookup">Troubleshooting</a>
+    <a href="#config">Live configuration</a>
+    <a href="#loose">Loose ends</a>
+  </nav>
+
+  <main>
+
+    <section class="step" id="s1">
+      <span class="ghost-num">01</span>
+      <div class="step-head"><span class="step-num">STEP 01</span><h2>Code to GitHub</h2><span class="badge ok">done</span></div>
+      <p>The project was committed with git and published to a private GitHub repository (<code>Act-On-Issues-new-version</code>) using GitHub Desktop — no command line needed. GitHub is what Cloud Run reads from directly later, rebuilding automatically on every push.</p>
+    </section>
+
+    <section class="step" id="s2">
+      <span class="ghost-num">02</span>
+      <div class="step-head"><span class="step-num">STEP 02</span><h2>Production database — MongoDB Atlas</h2><span class="badge ok">done</span></div>
+      <p>A free-tier (M0) Atlas cluster was created on Google Cloud, region <code>asia-south1</code>. A dedicated database login (<code>actonissuesindia_db_user</code>, separate from the Atlas account itself) was created for the app to connect with, and Network Access was opened to <code>0.0.0.0/0</code> — Cloud Run doesn't hand out a fixed, listable IP address, so this couldn't be narrowed further.</p>
+      <div class="callout info">
+        <span class="callout-label">Good to know</span>
+        <p>The connection string always needs a database name in it — <code>.../actonissue?retryWrites=...</code>, not just <code>.../?retryWrites=...</code>. Missing this caused a real bug later in Step 08.</p>
+      </div>
+    </section>
+
+    <section class="step" id="s3">
+      <span class="ghost-num">03</span>
+      <div class="step-head"><span class="step-num">STEP 03</span><h2>Real email sending — Brevo</h2><span class="badge warn">partially working</span></div>
+      <p>Brevo (free tier, 300 emails/day) handles OTP codes and notifications: <code>smtp-relay.brevo.com</code> on port <code>587</code>. Technically functioning, but see Step 10 — deliverability is currently broken for a specific, understood reason.</p>
+    </section>
+
+    <section class="step" id="s5">
+      <span class="ghost-num">05</span>
+      <div class="step-head"><span class="step-num">STEP 05</span><h2>File storage — Google Cloud Storage</h2><span class="badge ok">done</span></div>
+      <p>Uploaded issue photos live in a public-read bucket, <code>actonissue-images</code>, rather than on Cloud Run's own disk — Cloud Run keeps no permanent local drive. The app authenticates via a dedicated service identity (<code>storage-uploader@actonissue-9009.iam.gserviceaccount.com</code>), not a downloaded key file, by literally running <em>as</em> that identity.</p>
+    </section>
+
+    <section class="step" id="s6">
+      <span class="ghost-num">06</span>
+      <div class="step-head"><span class="step-num">STEP 06</span><h2>The production settings checklist</h2><span class="badge ok">done</span></div>
+      <p>Everything above collapses into named values ("environment variables") the app reads on startup. There's no <code>.env</code> file in production — that only exists for a personal computer, and is excluded from GitHub entirely. Every value below is typed directly into Cloud Run's own settings instead.</p>
+
+      <div class="callout info">
+        <span class="callout-label">Where to find this screen</span>
+        <p>Cloud Run → your service → <strong>Edit &amp; deploy new revision</strong> → Containers tab → <strong>Variables &amp; Secrets</strong>. Pasting a whole multi-line <code>NAME=value</code> block into the first <code>Name</code> box auto-splits it into separate rows — how all 11 values got entered in one paste, three separate times, once per region in Step 08.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Where it came from</th><th>How to find/regenerate it</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">NODE_ENV</td><td>Fixed</td><td>Always <code>production</code></td></tr>
+            <tr><td class="mono">SESSION_SECRET</td><td>Random string, generated once</td><td>Not looked up anywhere — must <strong>stay identical</strong> across deployments, or every signed-in user gets logged out at once</td></tr>
+            <tr><td class="mono">COOKIE_SECURE</td><td>Fixed</td><td>Always <code>true</code> — without it, cookies aren't marked secure even over HTTPS</td></tr>
+            <tr><td class="mono">MONGO_URI</td><td>Built from Atlas connection details</td><td>Atlas → Database → Connect → Drivers gives the template; password from Database Access → Edit Password; the <code>/actonissue</code> database name has to be typed in by hand</td></tr>
+            <tr><td class="mono">SMTP_HOST / PORT</td><td>Fixed for Brevo</td><td><code>smtp-relay.brevo.com</code> / <code>587</code> — shown on Brevo's SMTP page but never change</td></tr>
+            <tr><td class="mono">SMTP_USER</td><td>Brevo account login</td><td>Brevo → SMTP &amp; API → SMTP tab</td></tr>
+            <tr><td class="mono">SMTP_PASS</td><td>Generated SMTP key</td><td>Brevo → "Generate a new SMTP key" — shown only once at creation</td></tr>
+            <tr><td class="mono">SMTP_FROM</td><td>Currently a personal Gmail address</td><td>See Step 10 — needs to become domain-based</td></tr>
+            <tr><td class="mono">GCS_PROJECT_ID / GCS_BUCKET</td><td>Reused from an earlier attempt</td><td>Cloud Console → Cloud Storage → Buckets</td></tr>
+            <tr><td class="mono">GCS_KEY_FILE</td><td>Left blank intentionally</td><td>Not needed — app authenticates as Cloud Run's own runtime identity</td></tr>
+            <tr><td class="mono">TWILIO_*</td><td>Left blank</td><td>SMS OTP skipped for launch (Step 04)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">The gotcha worth remembering</span>
+        <p>A brand-new Cloud Run service starts with <strong>zero environment variables</strong>, even one running identical code in a different region. Nothing carries over automatically. This block was re-pasted from scratch all three times a new service was created in Step 08.</p>
+      </div>
+    </section>
+
+    <section class="step" id="s7">
+      <span class="ghost-num">07</span>
+      <div class="step-head"><span class="step-num">STEP 07</span><h2>First deploy — Cloud Run</h2><span class="badge ok">done</span></div>
+      <p>Service <code>act-on-issues</code> created in <code>asia-south1</code> via "Connect repo" (auto-rebuilds on every GitHub push). Confirmed working end-to-end: logging in as Admin showed real production data.</p>
+      <div class="callout warn">
+        <span class="callout-label">Fixed along the way</span>
+        <p>The Dockerfile had to move from <code>docker/Dockerfile</code> to the repo root — Cloud Run's build uses the Dockerfile's own folder as the build context.</p>
+      </div>
+    </section>
+
+    <section class="step" id="s8">
+      <span class="ghost-num">08</span>
+      <div class="step-head"><span class="step-num">STEP 08</span><h2>The domain saga</h2><span class="badge ok">resolved</span></div>
+      <p>The longest chapter in this whole project. The domain that ended up in use is <strong>actonissues.blog</strong> (GoDaddy), not the original actonissues.com.</p>
+
+      <h3>08a · asia-south1 can't do domain mapping</h3>
+      <pre><code>Domain mappings are not available in the region of the selected service.</code></pre>
+      <p>A real, permanent limitation of that specific Cloud Run feature — not every region supports it.</p>
+
+      <h3>08b · A quota wall</h3>
+      <pre><code>Project failed to initialize in this region due to quota exceeded.</code></pre>
+      <p>Every Google Cloud project caps how many <em>different</em> regions it may use Cloud Run in — this project's cap (3) was already spent. A manual increase was flatly declined:</p>
+      <pre><code>Based on your service usage history, you are not eligible for a quota increase at this time.</code></pre>
+      <div class="callout info">
+        <span class="callout-label">The workaround</span>
+        <p>Reuse a region already counted in the account's history instead of requesting a new one. <code>europe-west1</code> had been used before, and does support domain mapping.</p>
+      </div>
+
+      <h3>08c · The MongoDB mystery in europe-west1</h3>
+      <p>The new service deployed cleanly, but every page needing the database failed:</p>
+      <pre><code class="err-line">MongoServerSelectionError: connection &lt;monitor&gt; to &lt;ip&gt;:27017 closed
+MongooseError: Operation `issues.find()` buffering timed out after 10000ms</code></pre>
+      <p>Ruled out in order: wrong password (regenerated twice), IP not allow-listed (already open), the cluster being down (Atlas's own dashboard loaded data fine), a VPC misconfiguration (none existed), a live Atlas outage (status page clear), and raw reachability (a Cloud Shell TCP test reached all three database servers directly; MongoDB Compass on a personal PC connected instantly with the same credentials).</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Root cause</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Cloud Run's default sandbox ("Gen 1") struggles to hold MongoDB's persistent connections open.</td>
+              <td>Containers → General → Execution environment → <strong>Second generation</strong></td>
+            </tr>
+            <tr>
+              <td>The code's own connection timeout was deliberately set to 5 seconds (tuned for Mumbai) — too tight for the extra distance to Belgium.</td>
+              <td>Raised to 20 seconds in <code>server.js</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <pre><code>mongoose.set('bufferTimeoutMS', 20000);
+mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 20000 });</code></pre>
+      <p>Confirmed: the first request after the fix succeeded in 7.4s (would have failed at the old 5s cutoff); every request after that took 1.1–1.5s, same as any other region. Side-discovery: the Atlas cluster itself is hosted on Google Cloud in <code>asia-south1</code> (visible in its internal hostname, <code class="mono">mtm-gcp-ass1-...</code>) — confirming distance was the whole story.</p>
+
+      <h3>08d · A region tried and ruled out: asia-south2</h3>
+      <p>Deployed as a comparison test — connected to the database near-instantly (confirming the distance theory), but Domain Mappings aren't available there either. Kept only as a diagnostic; safe to delete.</p>
+
+      <h3>08e · Adding the mapping &amp; DNS</h3>
+      <p>Cloud Run issued 8 fixed IP addresses to add at the registrar:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td class="mono">216.239.32.21</td></tr>
+            <tr><td>A</td><td class="mono">216.239.34.21</td></tr>
+            <tr><td>A</td><td class="mono">216.239.36.21</td></tr>
+            <tr><td>A</td><td class="mono">216.239.38.21</td></tr>
+            <tr><td>AAAA</td><td class="mono">2001:4860:4802:32::15</td></tr>
+            <tr><td>AAAA</td><td class="mono">2001:4860:4802:34::15</td></tr>
+            <tr><td>AAAA</td><td class="mono">2001:4860:4802:36::15</td></tr>
+            <tr><td>AAAA</td><td class="mono">2001:4860:4802:38::15</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>At GoDaddy: the old placeholder <code>A @</code> record ("Website Builder Site") was deleted and replaced with all 8 records above on the root (<code>@</code>). The existing <code>www</code> redirect and unrelated TXT records (Google verification, DMARC) were left untouched. DNS resolved within minutes; the SSL certificate took a little longer, which is normal.</p>
+    </section>
+
+    <section class="step" id="s9">
+      <span class="ghost-num">09</span>
+      <div class="step-head"><span class="step-num">STEP 09</span><h2>The password lesson</h2><span class="badge crit">was broken</span></div>
+      <p>While chasing login problems, the Admin account's password got typed directly into Atlas's database viewer instead of through the app. The app always stores passwords scrambled ("hashed") — typing one in raw stores it as plain text, which can never match at login.</p>
+      <div class="callout crit">
+        <span class="callout-label">Rule going forward</span>
+        <p>Never edit a password field directly in Atlas's Data Explorer. Always go through the website itself — "Forgot password?", or the Admin's reset-password button next to a user in the Control Panel.</p>
+      </div>
+    </section>
+
+    <section class="step" id="s10">
+      <span class="ghost-num">10</span>
+      <div class="step-head"><span class="step-num">STEP 10</span><h2>Email deliverability</h2><span class="badge crit">not yet fixed</span></div>
+      <p>Password-reset and OTP emails report "sent" successfully but never arrive. Cause: <code>SMTP_FROM</code> is a personal <code>@gmail.com</code> address, and Gmail's own anti-spoofing rules don't allow a third-party sender like Brevo to convincingly send mail "as" a Gmail address — Brevo's own dashboard flags it directly as non-compliant with current Google/Yahoo/Microsoft sender requirements.</p>
+      <p><strong>The real fix:</strong> a sending address on an owned domain (e.g. <code>noreply@actonissues.blog</code>), verified in Brevo — the same kind of DNS work as Step 08, worth batching next time DNS is touched.</p>
+    </section>
+
+    <section class="step" id="lookup">
+      <div class="step-head"><h2>Troubleshooting quick reference</h2></div>
+      <p>If any of this happens again — to this deployment or a future one built the same way.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr><td>"connection ... closed" right after deploying to a region</td><td>Execution environment on "Default" (Gen 1)</td><td>Switch to <strong>Second generation</strong></td></tr>
+            <tr><td>Same, only in a region far from the database, even on Gen 2</td><td>Connection timeout too short for the distance</td><td>Already fixed (20s) — shouldn't recur</td></tr>
+            <tr><td>"...buffering timed out"</td><td>App couldn't reach MongoDB at all</td><td>Check Cloud Run Logs for the underlying line</td></tr>
+            <tr><td>"Invalid credentials" with the right password</td><td>Password typed directly into Atlas instead of the app</td><td>Reset via the site's own Forgot Password / Admin tool</td></tr>
+            <tr><td>"No account found" even though it exists</td><td><code>MONGO_URI</code> missing <code>/actonissue</code> database name</td><td>Check it reads <code>.../actonissue?...</code></td></tr>
+            <tr><td>Emails never arrive, no error shown</td><td>Sender is a personal Gmail address</td><td>Use a domain-based sender, verified in Brevo</td></tr>
+            <tr><td>"Domain mappings are not available..."</td><td>Not every Cloud Run region supports it</td><td>Confirmed working: <code>europe-west1</code></td></tr>
+            <tr><td>"Not eligible for a quota increase"</td><td>New regions need account history first</td><td>Reuse an already-used region instead</td></tr>
+            <tr><td>New service shows "0" environment variables</td><td>They don't carry over to a new region automatically</td><td>Re-paste the Step 06 checklist each time</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="step" id="config">
+      <div class="step-head"><h2>Current configuration snapshot</h2></div>
+      <p>Point-in-time — always trust the actual console over this if anything looks different later.</p>
+      <div class="config-grid">
+        <div class="config-card"><div class="k">Cloud Run service</div><div class="v">act-on-issues<small>europe-west1 · Gen 2 · public</small></div></div>
+        <div class="config-card"><div class="k">Service account</div><div class="v">storage-uploader@actonissue-9009<small>.iam.gserviceaccount.com</small></div></div>
+        <div class="config-card"><div class="k">Database</div><div class="v">Cluster0 → actonissue<small>MongoDB Atlas, asia-south1</small></div></div>
+        <div class="config-card"><div class="k">DB user</div><div class="v">actonissuesindia_db_user<small>Network access: 0.0.0.0/0</small></div></div>
+        <div class="config-card"><div class="k">Storage bucket</div><div class="v">actonissue-images<small>public read</small></div></div>
+        <div class="config-card"><div class="k">Email</div><div class="v">smtp-relay.brevo.com:587<small>unreliable — see Step 10</small></div></div>
+        <div class="config-card"><div class="k">Domain</div><div class="v">actonissues.blog<small>DNS at GoDaddy</small></div></div>
+      </div>
+    </section>
+
+    <section class="step" id="loose">
+      <div class="step-head"><h2>Loose ends</h2></div>
+      <p>Nothing urgent — none of these are broken, just worth knowing about:</p>
+      <ul>
+        <li>The original <code>act-on-issues</code> service in <code>asia-south1</code> is still running and fully working, just no longer where the domain points — safe to delete once <code>europe-west1</code> feels proven, or keep as a backup.</li>
+        <li>The <code>asia-south2</code> test service can be deleted — it only existed to diagnose the timeout issue.</li>
+        <li>Email needs the domain-based sender fix from Step 10 before it's fully reliable.</li>
+      </ul>
+    </section>
+
+    <footer>
+      Screenshots from the actual setup sessions weren't able to be saved into this page directly. If you'd like to add your own, the most useful to capture are: the Cloud Run service overview (region/URL/status in one place), the Domain mappings list (shows certificate status), and Atlas's Database Access / Network Access pages.
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  var canvas = document.getElementById('route');
+  var ctx = canvas.getContext('2d');
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  var nodes = [
+    { key: 'mumbai',  label: 'Mumbai',  sub: 'database lives here', x: 0.16, y: 0.72, color: '#6ee7a0', role: 'home' },
+    { key: 'belgium', label: 'Belgium', sub: 'app tried here first', x: 0.52, y: 0.24, color: '#ffb454', role: 'attempt' },
+    { key: 'delhi',   label: 'Delhi',   sub: 'proved the theory', x: 0.85, y: 0.68, color: '#4fd1e8', role: 'attempt' }
+  ];
+  var links = [
+    { a: 'belgium', b: 'mumbai', color: '#ffb454' },
+    { a: 'delhi',   b: 'mumbai', color: '#4fd1e8' }
+  ];
+
+  function resize() {
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+  }
+
+  function pt(n) {
+    var w = canvas.width, h = canvas.height;
+    return { x: n.x * w, y: n.y * h };
+  }
+
+  function drawCurve(p1, p2) {
+    var mx = (p1.x + p2.x) / 2;
+    var my = Math.min(p1.y, p2.y) - (canvas.height * 0.14);
+    ctx.moveTo(p1.x, p1.y);
+    ctx.quadraticCurveTo(mx, my, p2.x, p2.y);
+    return { mx: mx, my: my };
+  }
+
+  function curvePoint(p1, ctrl, p2, t) {
+    var x = (1 - t) * (1 - t) * p1.x + 2 * (1 - t) * t * ctrl.x + t * t * p2.x;
+    var y = (1 - t) * (1 - t) * p1.y + 2 * (1 - t) * t * ctrl.y + t * t * p2.y;
+    return { x: x, y: y };
+  }
+
+  var t0 = performance.now();
+
+  function frame(now) {
+    resize();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    var byKey = {};
+    nodes.forEach(function (n) { byKey[n.key] = pt(n); });
+
+    var elapsed = (now - t0) / 1000;
+
+    // links
+    links.forEach(function (link) {
+      var p1 = byKey[link.a], p2 = byKey[link.b];
+      ctx.save();
+      ctx.strokeStyle = link.color;
+      ctx.globalAlpha = 0.28;
+      ctx.lineWidth = 1.4 * dpr;
+      ctx.beginPath();
+      var ctrl = drawCurve(p1, p2);
+      ctx.stroke();
+      ctx.restore();
+
+      if (!reduceMotion) {
+        var speed = 0.22;
+        var tt = (elapsed * speed + (link.a === 'delhi' ? 0.5 : 0)) % 1;
+        var pos = curvePoint(p1, { x: ctrl.mx, y: ctrl.my }, p2, tt);
+        ctx.save();
+        ctx.fillStyle = link.color;
+        ctx.shadowColor = link.color;
+        ctx.shadowBlur = 12 * dpr;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 3 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    });
+
+    // nodes
+    nodes.forEach(function (n) {
+      var p = pt(n);
+      var pulse = reduceMotion ? 1 : (0.85 + 0.15 * Math.sin(elapsed * 2 + n.x * 8));
+
+      ctx.save();
+      ctx.fillStyle = n.color;
+      ctx.globalAlpha = 0.16;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 16 * dpr * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = n.color;
+      ctx.shadowColor = n.color;
+      ctx.shadowBlur = 10 * dpr;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = '#eef2f8';
+      ctx.font = (700) + ' ' + (12.5 * dpr) + 'px ui-monospace, monospace';
+      ctx.textAlign = n.x > 0.7 ? 'right' : (n.x < 0.3 ? 'left' : 'center');
+      ctx.fillText(n.label, p.x, p.y - 16 * dpr);
+      ctx.fillStyle = '#8a93a3';
+      ctx.font = (400) + ' ' + (10.5 * dpr) + 'px -apple-system, sans-serif';
+      ctx.fillText(n.sub, p.x, p.y - 16 * dpr + 14 * dpr);
+      ctx.restore();
+    });
+
+    if (!reduceMotion) requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', function () { resize(); if (reduceMotion) frame(performance.now()); });
+  resize();
+  requestAnimationFrame(frame);
+  if (reduceMotion) frame(performance.now());
+})();
+</script>
+
+</body>
+</html>

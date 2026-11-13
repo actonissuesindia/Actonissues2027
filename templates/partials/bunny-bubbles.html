@@ -1,0 +1,172 @@
+    <section class="game" aria-labelledby="game-title">
+      <h2 id="game-title">{{GAME_TITLE}}</h2>
+      <p class="sub">Move the bunny to catch the bubbles. Drag, use your mouse, or the ← → keys.</p>
+      <div class="stats">
+        <span>Score <b id="score">0</b></span>
+        <span id="lives">❤️❤️❤️</span>
+        <span>Best <b id="best">0</b></span>
+      </div>
+      <div class="stage">
+        <canvas id="game" width="320" height="360" aria-label="Bunny Bubbles game"></canvas>
+        <div class="overlay" id="overlay">
+          <p id="result" aria-live="polite"></p>
+          <button type="button" class="play" id="play">Play</button>
+        </div>
+      </div>
+    </section>
+
+  <script>
+    // ---- Bunny Bubbles ----
+    (function () {
+      var W = 320, H = 360, BUNNY_Y = H - 34, CATCH = 30;
+      var canvas = document.getElementById('game');
+      var ctx = canvas.getContext('2d');
+      var scoreEl = document.getElementById('score');
+      var livesEl = document.getElementById('lives');
+      var bestEl = document.getElementById('best');
+      var overlay = document.getElementById('overlay');
+      var resultEl = document.getElementById('result');
+      var playBtn = document.getElementById('play');
+
+      // Sharp drawing on high-density screens.
+      var dpr = window.devicePixelRatio || 1;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.scale(dpr, dpr);
+
+      var bunnyX = W / 2, bubbles = [], pops = [];
+      var score = 0, lives = 3, running = false, last = 0, spawnIn = 0, elapsed = 0;
+      var keys = { left: false, right: false };
+
+      var best = 0;
+      try { best = parseInt(localStorage.getItem('aoi-bunny-best'), 10) || 0; } catch (e) {}
+      bestEl.textContent = best;
+
+      function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+      // Pointer: the bunny follows your finger or mouse along the bottom.
+      function follow(e) {
+        var r = canvas.getBoundingClientRect();
+        bunnyX = clamp((e.clientX - r.left) / r.width * W, 20, W - 20);
+      }
+      canvas.addEventListener('pointermove', follow);
+      canvas.addEventListener('pointerdown', follow);
+      window.addEventListener('keydown', function (e) {
+        if (!running) return;
+        if (e.key === 'ArrowLeft') { keys.left = true; e.preventDefault(); }
+        if (e.key === 'ArrowRight') { keys.right = true; e.preventDefault(); }
+      });
+      window.addEventListener('keyup', function (e) {
+        if (e.key === 'ArrowLeft') keys.left = false;
+        if (e.key === 'ArrowRight') keys.right = false;
+      });
+
+      function drawBubble(b) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(125, 211, 252, 0.25)';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.9)';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.22, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.fill();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        // grass
+        ctx.fillStyle = '#166534';
+        ctx.fillRect(0, H - 14, W, 14);
+        bubbles.forEach(drawBubble);
+        pops.forEach(function (p) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(255, 255, 255,' + p.a + ')';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+        ctx.font = '40px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🐰', bunnyX, BUNNY_Y);
+      }
+
+      function hearts() {
+        livesEl.textContent = '❤️'.repeat(lives) + '🤍'.repeat(3 - lives);
+      }
+
+      function frame(t) {
+        if (!running) return;
+        var dt = Math.min(0.05, (t - last) / 1000);
+        last = t;
+        elapsed += dt;
+
+        if (keys.left) bunnyX = clamp(bunnyX - 260 * dt, 20, W - 20);
+        if (keys.right) bunnyX = clamp(bunnyX + 260 * dt, 20, W - 20);
+
+        // Gets a little faster the longer you last.
+        spawnIn -= dt;
+        if (spawnIn <= 0) {
+          var r = 12 + Math.random() * 6;
+          bubbles.push({ x: r + Math.random() * (W - 2 * r), y: -r, r: r, vy: 70 + Math.min(130, elapsed * 4) + Math.random() * 30 });
+          spawnIn = Math.max(0.4, 1.0 - elapsed * 0.012);
+        }
+
+        for (var i = bubbles.length - 1; i >= 0; i--) {
+          var b = bubbles[i];
+          b.y += b.vy * dt;
+          if (b.y + b.r >= BUNNY_Y - 14 && b.y - b.r <= BUNNY_Y + 14 && Math.abs(b.x - bunnyX) < CATCH) {
+            bubbles.splice(i, 1);
+            pops.push({ x: b.x, y: b.y, r: b.r, a: 1 });
+            score++;
+            scoreEl.textContent = score;
+          } else if (b.y - b.r > H) {
+            bubbles.splice(i, 1);
+            lives--;
+            hearts();
+            if (lives <= 0) { end(); draw(); return; }
+          }
+        }
+
+        for (var j = pops.length - 1; j >= 0; j--) {
+          pops[j].r += 60 * dt;
+          pops[j].a -= 3 * dt;
+          if (pops[j].a <= 0) pops.splice(j, 1);
+        }
+
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      function start() {
+        bubbles = []; pops = [];
+        score = 0; lives = 3; elapsed = 0; spawnIn = 0.3;
+        scoreEl.textContent = '0';
+        hearts();
+        overlay.hidden = true;
+        running = true;
+        last = performance.now();
+        requestAnimationFrame(frame);
+      }
+
+      function end() {
+        running = false;
+        keys.left = keys.right = false;
+        var msg = 'You caught ' + score + ' bubble' + (score === 1 ? '' : 's') + '!';
+        if (score > best) {
+          best = score;
+          bestEl.textContent = best;
+          try { localStorage.setItem('aoi-bunny-best', String(best)); } catch (e) {}
+          if (score > 0) msg += ' New best 🎉';
+        }
+        resultEl.textContent = msg;
+        playBtn.textContent = 'Play again';
+        overlay.hidden = false;
+      }
+
+      draw();
+      playBtn.addEventListener('click', start);
+    })();
+  </script>

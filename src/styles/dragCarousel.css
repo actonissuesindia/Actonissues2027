@@ -1,0 +1,106 @@
+/* ---- Drag/wheel-scrollable "Latest Issues" carousel (Home page) ----
+   Ported from a CodePen demo (credit: supahfunk) — continuous horizontal
+   strip driven by mouse-wheel/drag/touch, GSAP lerp momentum, and a subtle
+   skew/rotate/scale on every card while scrolling fast. See
+   dragCarouselEngine.js for the behavior; this is purely the look. */
+.dragcar {
+  overflow: hidden;
+  cursor: grab;
+  width: 100%;
+  position: relative;
+  height: clamp(280px, 38vh, 420px);
+  user-select: none;
+}
+.dragcar.is-dragging { cursor: grabbing; }
+
+.dragcar__wrapper {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.dragcar__item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: clamp(160px, 18vw, 260px);
+  height: 100%;
+  padding: 0 0.6rem;
+}
+@media (max-width: 767px) {
+  .dragcar__item { width: clamp(140px, 42vw, 220px); }
+}
+
+.dragcar__figure {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #1a1f2e;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.25);
+  transform-origin: center;
+  pointer-events: none;
+}
+.dragcar__figure img,
+.dragcar__figure video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  vertical-align: middle;
+}
+.dragcar__figure::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.75) 100%);
+}
+.dragcar__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 1.8rem;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  z-index: 1;
+}
+.dragcar__overlay {
+  position: absolute;
+  left: 0.9rem;
+  right: 0.9rem;
+  bottom: 0.8rem;
+  z-index: 1;
+  color: #fff;
+}
+.dragcar__category {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+  margin-bottom: 0.2rem;
+}
+.dragcar__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="dark"] .dragcar__figure { background: #0b0f19; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dragcar__figure { transition: none; }
+}

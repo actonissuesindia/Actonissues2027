@@ -1,0 +1,103 @@
+// Source-of-truth English strings for the citizen-facing surface — Admin/
+// Authority tooling and Page Builder are deliberately out of scope (see
+// src/context/LanguageContext.jsx). Every other language file mirrors this
+// file's key structure exactly; a missing key in hi/te/ta silently falls
+// back to here, so this file itself must never be missing a key any
+// component actually calls with t().
+export default {
+  common: {
+    loading: 'Loading…',
+    back: 'Back',
+    cancel: 'Cancel',
+    save: 'Save',
+    close: 'Close',
+    submit: 'Submit',
+    edit: 'Edit',
+    delete: 'Delete',
+    yes: 'Yes',
+    no: 'No'
+  },
+  topNav: {
+    issues: 'Issues',
+    trending: 'Trending',
+    topVoices: 'Top Voices',
+    guides: 'Related Topics',
+    games: 'Games',
+    about: 'About',
+    legalHelp: 'Legal Advice',
+    logIn: 'Log in',
+    getStarted: 'Get started',
+    join: 'Join',
+    raiseIssue: 'Raise an Issue',
+    notifications: 'Notifications',
+    markAllRead: 'Mark all read',
+    closeNotifications: 'Close notifications',
+    pushOn: 'Push notifications on',
+    turnOnPush: 'Turn on push notifications',
+    turnOff: 'Turn off',
+    pushBlocked: "Push notifications are blocked — enable them in your browser's site settings.",
+    noNotifications: 'No notifications yet.',
+    profileSettings: 'Profile Settings',
+    myIssues: 'My Issues',
+    myLegalRequests: 'My Legal Advice',
+    controlPanel: 'Control Panel',
+    logout: 'Logout',
+    toggleMenu: 'Toggle menu',
+    language: 'Language'
+  },
+  footer: {
+    tagline: 'A civic accountability network. Post issues, rally support, and watch them get resolved — in public, where everyone can see it.',
+    platform: 'Platform',
+    account: 'Account',
+    legal: 'Legal',
+    aboutUs: 'About Us',
+    raiseIssue: 'Raise an Issue',
+    guidesResources: 'Related Topics',
+    termsOfUse: 'Terms of Use',
+    privacyPolicy: 'Privacy Policy',
+    legalDisclaimer: 'Legal Disclaimer',
+    copyright: '© 2026 Act On Issues',
+    builtBy: 'Built for citizens, by citizens.'
+  },
+  foundersMessage: {
+    createAccount: 'Create your account'
+  },
+  home: {
+    heroEyebrowDefault: 'A social network for getting things fixed',
+    heroDescriptionDefault: "Post a pothole, a blocked drain, a dead streetlight — like you'd post anything else. Get upvoted, get noticed, get it fixed. Every post stays public until it's resolved.",
+    raiseIssue: 'Raise an issue',
+    browseIssues: 'Browse Issues',
+    issuesReportedCounting: 'issues reported and counting',
+    noTrendingTopics: 'No trending topics yet — Admin/Authority can mark any issue as Trending from its detail page or the Control Panel.',
+    member: 'Member',
+    trending: 'Trending',
+    support: 'Support',
+    comments: 'Comments',
+    realImpact: 'Real impact',
+    civicIssuesFixed: 'Civic issues, actually getting fixed',
+    issuesReported: 'Issues reported',
+    resolved: 'Resolved',
+    escalatedToAuthorities: 'Escalated to authorities',
+    resolutionRate: 'Resolution rate',
+    latestIssues: 'Latest Issues',
+    whatPeoplePosting: 'What people are posting right now',
+    seeAllIssues: 'See all Issues',
+    trendingInCity: 'Trending in your city',
+    mostActive: 'Most active',
+    topVoicesInCity: 'Top Voices in your city',
+    reports: 'reports',
+    howItWorks: 'How it works',
+    fourSteps: 'Four steps. No phone calls.',
+    step1Title: 'Post it',
+    step1Text: "Snap a photo, drop a pin, write what's wrong. Takes under a minute.",
+    step2Title: 'Get upvoted',
+    step2Text: 'Neighbours upvote and comment, pushing it up the priority list.',
+    step3Title: 'Routed automatically',
+    step3Text: 'Visible to the right authorities for your ward — no guesswork.',
+    step4Title: 'Resolved, publicly',
+    step4Text: "Status updates in the open, until it's marked fixed for good.",
+    beHeard: 'Be heard. Be counted.',
+    joinCitizens: 'Join citizens turning everyday complaints into public, trackable action.',
+    goToIssues: 'Go to Issues'
+  }
+};

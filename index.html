@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- A stable, un-hashed path (unlike a Vite-processed src/assets import,
+         which gets a new hashed filename every build) — Google's favicon
+         crawler caches by URL, so a URL that changes on every deploy is
+         part of why search results can keep showing a generic globe icon
+         instead of ours. -->
+    <!-- Some crawlers (notably Google's favicon fetcher) look for a plain
+         /favicon.ico at the site root as well as/instead of this link tag —
+         serve both so neither lookup path comes up empty. -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="shortcut icon" type="image/png" href="/icons/icon-192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Act On Issues - report and track civic issues in your community." />
+    <!-- actonissues.blog and actonissues.com both point at the same server (see
+         server.js), which without a canonical tag lets search engines treat them
+         as two separate sites and index either one — this pins .com as the one
+         true URL regardless of which host a page was fetched from. -->
+    <link rel="canonical" href="https://actonissues.com/" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#2563EB" />
+    <title>Act On Issues</title>
+    <!-- The site-wide link-preview card. Every page a crawler can reach has
+         one of these, in exactly this shape — a 1200x630 image, a title and a
+         description — so a link looks the same whichever page it points at and
+         wherever it's pasted. server.js's injectMeta swaps the whole block for
+         the page's own title/description/photo on a shared post, article,
+         profile or static page; what's left here is what an app route (a
+         dashboard, a game, an unapproved post) previews as.
+         /og/default.jpg is rendered by services/ogImageService.js — the old
+         icon-512.png was a 512px square, which crawlers show as a small
+         thumbnail next to the text rather than a full-width card. -->
+    <meta property="og:site_name" content="Act On Issues" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Act On Issues" />
+    <meta property="og:description" content="Report and track civic issues in your community — and hold local authorities accountable." />
+    <meta property="og:url" content="https://actonissues.com/" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:image" content="https://actonissues.com/og/default.jpg" />
+    <meta property="og:image:secure_url" content="https://actonissues.com/og/default.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Act On Issues" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Act On Issues" />
+    <meta name="twitter:description" content="Report and track civic issues in your community — and hold local authorities accountable." />
+    <meta name="twitter:image" content="https://actonissues.com/og/default.jpg" />
+    <!-- Tells Google "this logo belongs to this organization" — the piece a
+         favicon alone doesn't provide, needed for the branded logo Google
+         sometimes shows next to search results / in a knowledge panel.
+         alternateName covers the common ways people type/search the brand
+         name (with/without spaces, singular "issue"). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Act On Issues",
+        "alternateName": ["Acton Issues", "Act on Issue", "Acton Issue", "Act Issues", "Act Issue"],
+        "url": "https://actonissues.com/",
+        "logo": "https://actonissues.com/icons/icon-512.png"
+      }
+    </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

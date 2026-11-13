@@ -1,0 +1,287 @@
+/* ---- 3D parallax / glassmorphic carousel (Hot Topics section) ----
+   Ported from a standalone full-page demo, so the original's page-level
+   resets (html/body height+overflow, 100vh carousel, a viewport-fixed
+   progress bar) are deliberately NOT included here — this version has to
+   sit as one section inside a normal scrolling page, not own the whole
+   viewport. Everything else (glass cards, parallax, tilt, dots, buttons,
+   responsive breakpoints) is the original, unchanged. */
+:root {
+  --mzaC-fg: #e7ecf2;
+  --mzaC-accent: #9ef7d2;
+  --mzaC-accent2: #82a0ff;
+  --mzaC-glass: rgba(255, 255, 255, 0.06);
+  --mzaC-glow: rgba(130, 160, 255, 0.75);
+  /* Narrower than the original demo's 880px single-focus card — this keeps
+     3-4 cards in frame at once on desktop instead of just one at a time.
+     Must stay in sync with the matching Math.min(...) cap in
+     mzaCarouselEngine.js's _measure(), which the drag/positioning math
+     uses independently of this CSS value. */
+  --mzaC-slideW: min(300px, 32vw);
+  --mzaC-peek: 0.15;
+  --mzaPagH: 64px;
+  --mzaCardH: clamp(360px, 62vh, 600px);
+}
+.mzaCarousel {
+  position: relative;
+  height: clamp(420px, 65vh, 620px);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 18px;
+  overflow: hidden;
+  contain: layout paint;
+  /* pan-y (not none) — this still lets the drag-to-swipe JS handle
+     horizontal gestures, but leaves vertical touch scrolling to the
+     browser. With `none`, a mobile visitor whose swipe to scroll the page
+     happened to start on this carousel would find the page just... not
+     scroll, since nothing here reads vertical movement either. */
+  touch-action: pan-y;
+  border-radius: 24px;
+}
+.mzaCarousel-viewport {
+  position: relative;
+  outline: none;
+  overflow: hidden;
+  height: 100%;
+}
+.mzaCarousel-track {
+  position: relative;
+  height: calc(100% - var(--mzaPagH) - 12px);
+  transform-style: preserve-3d;
+  perspective: 1200px;
+  overflow: hidden;
+}
+.mzaCarousel-slide {
+  position: absolute;
+  top: calc(50% + 5px);
+  left: 50%;
+  width: var(--mzaC-slideW);
+  height: min(var(--mzaCardH), calc(100% - 50px));
+  transform-style: preserve-3d;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  overflow: hidden;
+  will-change: transform, filter;
+  transition: opacity 400ms ease;
+}
+.mzaCard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+  background: var(--mzaC-glass);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: saturate(120%) blur(4px);
+  transform: translateZ(0);
+  cursor: grab;
+}
+.mzaCard::before {
+  content: '';
+  position: absolute;
+  inset: -2%;
+  background-color: #1a1f2e;
+  background-image: var(--mzaCard-bg);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: contrast(1.02) saturate(1.08) brightness(0.9);
+  transform: translateZ(-60px) scale(1.18) translate3d(var(--mzaParBgX, 0px), var(--mzaParBgY, 0px), 0);
+  transition: transform 800ms cubic-bezier(0.2, 0.7, 0, 1), filter 800ms cubic-bezier(0.2, 0.7, 0, 1);
+}
+.mzaCard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45) 45%, rgba(0, 0, 0, 0.25) 100%);
+}
+/* Paints after ::before (the gradient/photo background layer) and before
+   ::after (the darkening scrim), so a video sits in the same visual slot a
+   background-image would — CSS background-image can't render a video, it
+   silently fails to paint and leaves the card blank. */
+.mzaCard-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #1a1f2e;
+}
+.mzaCard-head {
+  position: absolute;
+  inset: 20px auto auto 20px;
+  z-index: 2;
+}
+.mzaCard-title {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  font-size: clamp(20px, 2.6vw, 32px);
+  color: #fff;
+  text-shadow: 2px 2px 15px rgba(0, 0, 0, 0.6);
+  line-height: 110%;
+}
+.mzaCard-kicker {
+  margin: 0.5rem 0;
+  color: var(--mzaC-accent);
+  font-size: clamp(12px, 1.7vw, 14px);
+  font-weight: 600;
+  text-shadow: 1px 1px 10px rgba(0, 0, 0, 0.6);
+}
+.mzaCard-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-line;
+  position: absolute;
+  inset: auto 20px 85px 20px;
+  z-index: 2;
+  max-width: 60ch;
+  background-color: rgba(0, 0, 0, 0.4);
+  padding: 20px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border-radius: 10px;
+  color: #ddd;
+}
+.mzaCard-actions {
+  position: absolute;
+  inset: auto auto 18px 18px;
+  z-index: 2;
+}
+.mzaBtn {
+  appearance: none;
+  border: 1px solid #9ef7d2;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-weight: 700;
+  color: #0b0e13;
+  background-image: linear-gradient(180deg, #9ef7d2, #97ebc8, #8fe0be, #88d5b5, #81c9ab, #7abea2, #73b398, #6ca88f, #659d86, #5e937d, #588874, #517e6b);
+  box-shadow: 0 3px 15px var(--mzaC-glow);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.mzaBtn:active { transform: translateY(1px); box-shadow: 0 3px 10px rgba(130, 160, 255, 0.25); }
+
+.mzaCarousel-controls {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.mzaCarousel-prev, .mzaCarousel-next {
+  pointer-events: auto;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  /* The demo's near-transparent white pill (frosted glass over its own
+     dark full-page background) is nearly invisible against this app's
+     light page background — no hover state to reveal it on touch devices
+     either, so it needs to actually read as a button at rest. */
+  background: var(--surface, #fff);
+  box-shadow: -4px -4px 10px rgba(255, 255, 255, 0.85), 5px 5px 12px rgba(163, 177, 198, 0.4);
+  color: var(--ink, #1a1a1a);
+  font-size: 22px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.mzaCarousel-prev { margin-left: 6px; }
+.mzaCarousel-next { margin-right: 6px; }
+.mzaCarousel-prev:hover, .mzaCarousel-next:hover { transform: translateY(-2px); }
+.mzaCarousel-prev:active, .mzaCarousel-next:active { transform: scale(0.94); }
+
+.mzaCarousel-pagination {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+}
+.mzaCarousel-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.mzaCarousel-dot[aria-selected="true"] {
+  background: linear-gradient(180deg, var(--mzaC-accent2), var(--mzaC-accent));
+  transform: scale(1.35);
+}
+
+.mzaCarousel-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.mzaCarousel-progressBar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
+  will-change: transform;
+  background: linear-gradient(90deg, var(--mzaC-accent), var(--mzaC-accent2));
+}
+
+.mzaCarousel-slide[data-state="active"] .mzaCard::before { filter: contrast(1.06) saturate(1.12) brightness(1.02); }
+.mzaCarousel-slide[data-state="active"] .mzaCard {
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  /* A plain static ring in the brand color marks the active card — matches
+     app.css's .rotating-glow, which dropped the spinning rainbow ring for
+     the same reason (Apple-style: a static accent, not a busy effect). */
+  border: 3px solid #2d4a7a;
+}
+
+.mzaPar-1, .mzaPar-2, .mzaPar-3 { will-change: transform; transition: transform 500ms cubic-bezier(0.2, 0.7, 0, 1); }
+.mzaPar-1 { transform: translate3d(calc(var(--mzaParX, 0px) * 0.35), calc(var(--mzaParY, 0px) * 0.35), 0); }
+.mzaPar-2 { transform: translate3d(calc(var(--mzaParX, 0px) * 0.25), calc(var(--mzaParY, 0px) * 0.25), 0); }
+.mzaPar-3 { transform: translate3d(calc(var(--mzaParX, 0px) * 0.18), calc(var(--mzaParY, 0px) * 0.18), 0); }
+
+@media (max-width: 1000px) {
+  /* Scaled down along with the base --mzaC-slideW above (originally sized
+     for a single near-full-width hero card) — left this large, a card
+     could render wider than a phone's whole viewport and overlap its
+     neighbors instead of sitting in its own slot. */
+  :root { --mzaC-slideW: min(70vw, 260px); }
+  .mzaCard-head { inset: 16px auto auto 16px; }
+  .mzaCard-kicker { font-size: clamp(12px, 3.6vw, 13px); }
+  .mzaCard-text { inset: auto 16px 62px 16px; }
+}
+@media (max-width: 768px) {
+  :root { --mzaC-slideW: min(72vw, 230px); }
+  .mzaCard-text, .mzaCard-title, .mzaCard-kicker { max-width: 70%; }
+}
+@media (max-width: 560px) {
+  :root { --mzaC-slideW: min(74vw, 200px); }
+}
+@media (max-height: 480px) {
+  .mzaCard-text { display: none; }
+}
+@media (max-height: 340px) {
+  .mzaCard-kicker { display: none; }
+}
+/* A landscape phone (short viewport height) shouldn't be forced into the
+   desktop-tuned 420px+ minimum height — that alone could exceed the whole
+   viewport. */
+@media (max-height: 520px) {
+  .mzaCarousel { height: clamp(260px, 72vh, 420px); }
+  :root { --mzaCardH: clamp(200px, 66vh, 360px); }
+}
